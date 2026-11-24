@@ -58,16 +58,40 @@
     (is (= "t" (:name (first (:locals function)))))
     (is (= [:assign :if :while :assert :assume] (mapv :node statements)))))
 
-(deftest parser-desugars-array-update-and-parses-tuple-call
+(deftest parser-builds-array-update-and-tuple-call-nodes
+  ;; :array-update - это target = set(target, i1, ..., v), а a[i][j] = v - это
+  ;; a = set(a, i, set(a[i], j, v)). Индексы лежат в том порядке, как записаны.
   (let [{:keys [ast errors]} (parser/parse
-                              "function g(a:int[]) returns x:int, y:int uses b:int[] { b = a; b[0] = 2; x, y = pair(1); }")
+                              "function g(a:int[]) returns x:int, y:int uses b:int[] { b = a; b[0] = 2; b[1][2] = 3; x, y = pair(1); }")
         statements (get-in ast [:functions 0 :body :statements])]
     (is (empty? errors))
-    (is (= [:assign :array-update :tuple-assign] (mapv :node statements)))
-    (is (= "b" (:target (second statements))))
-    (is (= 1 (count (:indices (second statements)))))
-    (is (= ["x" "y"] (:targets (nth statements 2))))
-    (is (= :call (get-in statements [2 :value :node])))))
+    (is (= [:assign :array-update :array-update :tuple-assign] (mapv :node statements)))
+    (is (= {:node :array-update :target "b"
+            :indices [{:node :int :value 0}]
+            :value {:node :int :value 2}}
+           (without-positions (nth statements 1))))
+    (is (= {:node :array-update :target "b"
+            :indices [{:node :int :value 1} {:node :int :value 2}]
+            :value {:node :int :value 3}}
+           (without-positions (nth statements 2))))
+    (is (= ["x" "y"] (:targets (nth statements 3))))
+    (is (= :call (get-in statements [3 :value :node])))))
+
+(deftest parser-recovers-from-unclosed-block-at-next-function
+  (doseq [[source unclosed-expected]
+          [["function bad() returns r:int { r = 1;\nfunction good() returns r:int { r = 2; }" 1]
+           ["function bad() returns r:int { { { r = 1;\nfunction good() returns r:int { r = 2; }" 1]
+           ["function bad() returns r:int { if (true) { while (true) { r = 1;\nfunction good() returns r:int { r = 2; }" 1]]]
+    (let [result (deref (future (parser/parse source)) 1000 ::timeout)]
+      (is (not= ::timeout result))
+      (when-not (= ::timeout result)
+        (let [{:keys [ast errors]} result]
+          (is (= ["bad" "good"] (mapv :name (:functions ast))))
+          (is (= unclosed-expected (count errors)))
+          (is (= "'}'" (:expected (first errors))))
+          (is (= :FUNCTION (:found-type (first errors))))
+          (is (= 2 (:line (first errors))))
+          (is (= 1 (:column (first errors)))))))))
 
 (deftest parser-reports-missing-delimiters-and-extra-tokens
   (let [{:keys [errors]} (parser/parse "function f() returns r:int { r = 1 } junk")
@@ -120,3 +144,24 @@
       (is (= error-column (:column (first errors))))
       (is (= :assign (:node (last statements))))
       (is (= "r" (:target (last statements)))))))
+
+(deftest parser-accepts-upstream-syntax-without-function-keyword
+  (let [bare (parser/parse "f(x: int) returns r: int { r = x; }\ng() returns r: int { r = 1; }")
+        with-keyword (parser/parse "function f(x: int) returns r: int { r = x; }\nfunction g() returns r: int { r = 1; }")
+        mixed (parser/parse "function f() returns r: int { r = 1; }\ng() returns r: int { r = 2; }")]
+    (is (empty? (:errors bare)))
+    (is (= ["f" "g"] (mapv :name (:functions (:ast bare)))))
+    (is (= (without-positions (:ast bare)) (without-positions (:ast with-keyword))))
+    (is (empty? (:errors mixed)))
+    (is (= ["f" "g"] (mapv :name (:functions (:ast mixed)))))))
+
+(deftest parser-recovers-at-next-function-without-keyword
+  (let [{:keys [ast errors]} (parser/parse "bad() returns r: int { r = 1;\ngood() returns r: int { r = 2; }")]
+    (is (= ["bad" "good"] (mapv :name (:functions ast))))
+    (is (= 1 (count errors)))
+    (is (= {:line 2 :column 1} (select-keys (first errors) [:line :column])))))
+
+(deftest call-at-statement-start-is-not-a-function-header
+  (let [{:keys [ast errors]} (parser/parse "f() returns r: int { foo(1); r = 1; }")]
+    (is (= ["f"] (mapv :name (:functions ast))))
+    (is (= 1 (count errors)))))

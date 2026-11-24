@@ -57,6 +57,16 @@
         dfa (automata/determinize nfa #{\a})
         minimized (automata/minimize dfa)]
     (is (nil? (:trap dfa)))
+    (is (= #{:match} (set (vals (:accepts dfa)))))
     (is (some? (:trap minimized)))
     (is (= (:trap minimized)
            (get-in minimized [:transitions (:trap minimized) \a])))))
+
+(deftest determinize-accepts-single-compile-nfa-result
+  (let [nfa (automata/compile-nfa (regex/parse "a"))
+        dfa (automata/determinize nfa #{\a \b})]
+    (is (automata/nfa-matches? nfa "a"))
+    (is (= 1 (count (:accepts dfa))))
+    (let [accepting (first (keys (:accepts dfa)))]
+      (is (= accepting (get-in dfa [:transitions (:start dfa) \a])))
+      (is (not= accepting (get-in dfa [:transitions (:start dfa) \b]))))))

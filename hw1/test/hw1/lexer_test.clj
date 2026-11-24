@@ -51,5 +51,65 @@
     (is (= :EQEQ (:type (nth tokens 13))))))
 
 (deftest exported-table-has-ordered-columns-for-all-ascii
-  (let [row (first (automata/table @test-lexer))]
+  (let [row (first (:states (automata/export @test-lexer)))]
     (is (= (vec (range 128)) (vec (keys (:transitions row)))))))
+
+(deftest export-is-self-contained
+  (let [exported (automata/export @test-lexer)
+        read-back (read-string (pr-str exported))]
+    (is (= (:start @test-lexer) (:start read-back)))
+    (is (= (:trap @test-lexer) (:trap read-back)))
+    (is (= #{:WS :COMMENT} (:skip-types read-back)))
+    (is (= (:state-counts @test-lexer) (:state-counts read-back)))
+    (is (= (count (:transitions @test-lexer)) (count (:states read-back))))))
+
+;; Ожидания для каждого ASCII-кода, записанные вручную, без помощи лексера.
+(def ^:private expected-single-char
+  (merge
+   (into {} (map (fn [c] [(int c) [:IDENT]]) (concat (range (int \a) (inc (int \z)))
+                                                    (range (int \A) (inc (int \Z)))
+                                                    [(int \_)])))
+   (into {} (map (fn [c] [c [:INT]]) (range (int \0) (inc (int \9)))))
+   (into {} (map (fn [c] [c []]) [9 10 13 32]))
+   {(int \() [:LPAREN] (int \)) [:RPAREN] (int \[) [:LBRACKET] (int \]) [:RBRACKET]
+    (int \{) [:LBRACE] (int \}) [:RBRACE] (int \,) [:COMMA] (int \;) [:SEMI]
+    (int \:) [:COLON] (int \+) [:PLUS] (int \-) [:MINUS] (int \*) [:STAR]
+    (int \/) [:SLASH] (int \<) [:LT] (int \>) [:GT] (int \=) [:EQ]}))
+
+(deftest scanner-handles-every-single-ascii-character
+  (doseq [code (range 128)]
+    (let [source (str (char code))
+          expected (get expected-single-char code :error)
+          actual (try (mapv :type (lexer/scan @test-lexer source))
+                      (catch clojure.lang.ExceptionInfo e
+                        (is (= {:line 1 :column 1} (select-keys (ex-data e) [:line :column]))
+                            (str "error position for code " code))
+                        :error))]
+      (is (= expected actual) (str "ASCII code " code)))))
+
+(deftest scanner-handles-ascii-characters-in-context
+  (doseq [code (range 128)
+          :let [expected (get expected-single-char code :error)]
+          :when (not= expected :error)
+          :let [source (str "x " (char code) " y")
+                types (mapv :type (lexer/scan @test-lexer source))]]
+    (is (= (vec (concat [:IDENT] expected [:IDENT])) types) (str "ASCII code " code)))
+  (doseq [code (range 128)
+          :when (= :error (get expected-single-char code :error))]
+    (is (thrown? clojure.lang.ExceptionInfo
+                 (lexer/scan @test-lexer (str "x " (char code) " y")))
+        (str "ASCII code " code))))
+
+(deftest scanner-keeps-compound-operators-and-comments
+  (is (= [:EQEQ :NE :LE :GE :IMPLIES] (mapv :type (lexer/scan @test-lexer "== != <= >= ->"))))
+  (is (= [:EQ :EQ] (mapv :type (lexer/scan @test-lexer "= ="))))
+  (is (= [:IDENT :IDENT] (mapv :type (lexer/scan @test-lexer "a // $#@!\u0001 \nb")))))
+
+(deftest non-ascii-text-is-allowed-inside-comments-only
+  (is (= [{:type :IDENT :text "name" :line 2 :column 1}]
+         (lexer/scan @test-lexer "// комментарий λ\nname")))
+  (is (= [{:type :IDENT :text "a" :line 1 :column 1}]
+         (lexer/scan @test-lexer "a // без перевода строки")))
+  (is (= [:IDENT :IDENT]
+         (mapv :type (lexer/scan @test-lexer "a // ок\r\nb"))))
+  (is (thrown? clojure.lang.ExceptionInfo (lexer/scan @test-lexer "a λ // ок"))))

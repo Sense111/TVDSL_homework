@@ -2,7 +2,7 @@
   (:require [clojure.set :as set]))
 
 (defn compile-nfa
-  "Compile a regex AST to a Thompson epsilon-NFA."
+  "Строит по AST регулярного выражения эпсилон-НКА по конструкции Томпсона."
   [ast]
   (let [next-state (atom 0)
         transitions (atom {})
@@ -80,7 +80,7 @@
       closed)))
 
 (defn nfa-matches?
-  "Return true when the NFA accepts the complete input string."
+  "Возвращает true, если НКА принимает всю входную строку целиком."
   [nfa input]
   (loop [active (epsilon-closure nfa #{(:start nfa)})
          remaining (seq input)]
@@ -101,7 +101,7 @@
                (keys (:accepts nfa)))))
 
 (defn combine-nfas
-  "Join token NFAs under one start state. Lower priority numbers win ties."
+  "Объединяет НКА токенов под одним стартовым состоянием. При равенстве побеждает меньший номер приоритета."
   [entries]
   (let [rebased
         (loop [remaining entries, offset 0, transitions {}, epsilon {}, accepts {}, starts []]
@@ -139,10 +139,21 @@
        first
        second))
 
+(defn- with-accepts
+  "Принимает обе формы НКА: объединённый (карта `:accepts`) и одиночный
+  результат `compile-nfa` (одно состояние `:accept`), которому ставится метка по умолчанию."
+  [nfa]
+  (if (and (nil? (:accepts nfa)) (some? (:accept nfa)))
+    (assoc nfa :accepts {(:accept nfa) {:token :match :priority 0}})
+    nfa))
+
 (defn determinize
-  "Convert an epsilon-NFA into a total DFA over the supplied alphabet."
+  "Преобразует эпсилон-НКА в полный ДКА над заданным алфавитом.
+  Принимает результат `combine-nfas` или одиночный результат `compile-nfa`
+  (его принимающее состояние получает метку `:match`)."
   [nfa alphabet]
-  (let [alphabet (vec (sort-by int alphabet))
+  (let [nfa (with-accepts nfa)
+        alphabet (vec (sort-by int alphabet))
         initial (epsilon-closure nfa #{(:start nfa)})
         ids (atom {initial 0})
         queue (atom (conj clojure.lang.PersistentQueue/EMPTY initial))
@@ -219,7 +230,7 @@
    blocks))
 
 (defn minimize
-  "Minimize a total DFA using Hopcroft partition refinement."
+  "Минимизирует полный ДКА уточнением разбиения по Хопкрофту."
   [dfa]
   (let [dfa (complete-dfa dfa)
         alphabet (vec (sort-by int (:alphabet dfa)))
@@ -273,7 +284,7 @@
      :accepts minimized-accepts}))
 
 (defn table
-  "Return transition rows in stable state and character order."
+  "Возвращает строки переходов в стабильном порядке состояний и символов."
   [dfa]
   (let [alphabet (sort-by int (:alphabet dfa))]
     (mapv (fn [state]
@@ -283,3 +294,12 @@
                                 (map (fn [ch] [(int ch) (get-in dfa [:transitions state ch])])
                                      alphabet))})
           (sort (keys (:transitions dfa))))))
+
+(defn export
+  "Возвращает самодостаточную EDN-карту, описывающую построенный ДКА/лексер."
+  [dfa]
+  {:start (:start dfa)
+   :trap (:trap dfa)
+   :skip-types (:skip-types dfa)
+   :state-counts (:state-counts dfa)
+   :states (table dfa)})

@@ -149,7 +149,7 @@
     (parse-implication)))
 
 (defn parse-expression
-  "Parse one Funny expression and return its AST or a positioned error."
+  "Разбирает одно выражение Funny и возвращает его AST или ошибку с позицией."
   [source]
   (try
     (let [source (str source)
@@ -172,22 +172,43 @@
 (defn- record-error! [ctx error]
   (swap! (:errors ctx) conj (error-map error)))
 
+;; Заголовок функции без `function` выглядит как `имя ( ... ) requires|returns`.
+;; Вызов в начале оператора так выглядеть не может, поэтому по `)` и следующему
+;; ключевому слову начало функции отличается от обычного кода.
+(defn- bare-function-start? [ctx]
+  (let [tokens (:tokens ctx) i @(:index ctx)]
+    (boolean
+     (and (= :IDENT (:type (get tokens i)))
+          (= :LPAREN (:type (get tokens (inc i))))
+          (loop [j (+ i 2), depth 1]
+            (when-let [t (get tokens j)]
+              (case (:type t)
+                :LPAREN (recur (inc j) (inc depth))
+                :RPAREN (if (= depth 1)
+                          (contains? #{:REQUIRES :RETURNS} (:type (get tokens (inc j))))
+                          (recur (inc j) (dec depth)))
+                (recur (inc j) depth))))))))
+
+(defn- function-start? [ctx]
+  (or (= :FUNCTION (:type (current-token ctx)))
+      (bare-function-start? ctx)))
+
 (defn- recover-statement! [ctx before]
   (loop []
-    (when-not (contains? #{:EOF :RBRACE :SEMI} (:type (current-token ctx)))
+    (when-not (contains? #{:EOF :RBRACE :SEMI :FUNCTION} (:type (current-token ctx)))
       (advance! ctx)
       (recur)))
   (when (= :SEMI (:type (current-token ctx)))
     (advance! ctx))
   (when (and (= before @(:index ctx))
-             (not (contains? #{:EOF :RBRACE} (:type (current-token ctx)))))
+             (not (contains? #{:EOF :RBRACE :FUNCTION} (:type (current-token ctx)))))
     (advance! ctx)))
 
 (defn- recover-function! [ctx before]
   (when (= before @(:index ctx))
     (advance! ctx))
   (loop []
-    (when-not (contains? #{:EOF :FUNCTION} (:type (current-token ctx)))
+    (when-not (or (= :EOF (:type (current-token ctx))) (function-start? ctx))
       (advance! ctx)
       (recur))))
 
@@ -218,13 +239,22 @@
                   items))))
           (parse-block [open-token]
             (loop [statements []]
-              (case (:type (current-token ctx))
+              (case (if (function-start? ctx) :FUNCTION (:type (current-token ctx)))
                 :RBRACE (do (advance! ctx)
                             (node :block open-token {:statements statements}))
                 :EOF (do (record-error! ctx
                                         (try (parse-error! ctx "'}'")
                                              (catch clojure.lang.ExceptionInfo error error)))
                          (node :block open-token {:statements statements}))
+                ;; Встретили `function` внутри блока - значит, `}` забыли. Ошибку
+                ;; пишем один раз, вложенные блоки закрываем молча, а сам токен
+                ;; не трогаем: пусть его разберёт верхний уровень.
+                :FUNCTION (do (when-not (= @(:index ctx) @(:unwound-at ctx))
+                                (reset! (:unwound-at ctx) @(:index ctx))
+                                (record-error! ctx
+                                               (try (parse-error! ctx "'}'")
+                                                    (catch clojure.lang.ExceptionInfo error error))))
+                              (node :block open-token {:statements statements}))
                 (let [before @(:index ctx)
                       result (try {:statement (parse-statement)}
                                   (catch clojure.lang.ExceptionInfo error {:error error}))]
@@ -271,7 +301,9 @@
                                       nil)))
                   (expect! ctx :SEMI "';'")
                   (node :tuple-assign equals
-                        {:targets (mapv :name targets) :value value}))
+                        {:targets (mapv :name targets)
+                         :target-positions (mapv #(select-keys (:token %) [:line :column]) targets)
+                         :value value}))
 
                 (seq (:indices (first targets)))
                 (do
@@ -320,7 +352,7 @@
               :IDENT (parse-assignment)
               (parse-error! ctx "statement")))
           (parse-function []
-            (let [function-token (expect! ctx :FUNCTION "'function'")
+            (let [function-token (or (match! ctx :FUNCTION) (current-token ctx))
                   name-token (expect! ctx :IDENT "function name")]
               (expect! ctx :LPAREN "'('")
               (let [params (parse-comma-list parse-variable :RPAREN)]
@@ -348,7 +380,7 @@
                       locals (assoc :locals locals)))))))
           (parse-module []
             (loop [functions []]
-              (case (:type (current-token ctx))
+              (case (if (bare-function-start? ctx) :FUNCTION (:type (current-token ctx)))
                 :EOF (if (and (empty? functions) (empty? (:tokens ctx)))
                        (do (record-error! ctx
                                           (try (parse-error! ctx "function declaration")
@@ -374,12 +406,13 @@
     (parse-module)))
 
 (defn parse
-  "Parse a Funny program into a module AST and collect recoverable syntax errors."
+  "Разбирает программу Funny в AST модуля и собирает синтаксические ошибки, после которых возможно восстановление."
   [source]
   (let [source (str source)]
     (try
       (let [tokens (lexer/scan @compiled-lexer source)
-            ctx (assoc (context tokens (source-end-position source)) :errors (atom []))
+            ctx (assoc (context tokens (source-end-position source))
+                       :errors (atom []) :unwound-at (atom -1))
             ast (parse-program-tokens ctx)]
         {:ast ast :errors @(:errors ctx)})
       (catch clojure.lang.ExceptionInfo error

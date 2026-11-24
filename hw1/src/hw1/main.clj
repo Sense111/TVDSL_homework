@@ -36,10 +36,7 @@
             (System/exit 1))))
 
       "table"
-      (do
-        (println "State counts:" (:state-counts compiled))
-        (doseq [row (automata/table compiled)]
-          (prn row)))
+      (prn (automata/export compiled))
 
       "examples"
       (examples! compiled)

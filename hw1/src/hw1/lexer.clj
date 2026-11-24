@@ -37,7 +37,7 @@
         (map (fn [[text token]] {:token token :pattern (literal-pattern text)}) operators))))
 
 (defn compile-lexer
-  "Compile and minimize the combined Funny token automaton."
+  "Строит и минимизирует объединённый автомат токенов Funny."
   []
   (let [entries (mapv (fn [priority {:keys [token pattern]}]
                         {:token token
@@ -73,7 +73,7 @@
                     {:line line :column column :index index :found found}))))
 
 (defn scan
-  "Scan source using maximal munch and return positioned non-skip tokens."
+  "Сканирует исходный текст по правилу максимального совпадения и возвращает токены с позициями, кроме пропускаемых."
   [lexer source]
   (let [source (str source)
         size (count source)
@@ -100,6 +100,13 @@
           (when-not match
             (lexical-error "Unrecognized input" source index line column))
           (let [[end token-type] match
+                ;; в комментарии допустим любой символ до конца строки (в т.ч. не-ASCII):
+                ;; ДКА останавливается на первом не-ASCII символе, поэтому дочитываем остаток
+                end (if (= token-type :COMMENT)
+                      (or (some (fn [i] (when (#{\newline \return} (.charAt ^String source (int i))) i))
+                                (range end size))
+                          size)
+                      end)
                 text (subs source index end)
                 next-char (when (< end size) (.charAt ^String source end))]
             (when (and (= token-type :INT) (= text "0") next-char

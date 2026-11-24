@@ -32,7 +32,7 @@
               (recur (conj members start)))))))))
 
 (defn parse
-  "Parse the regular-expression subset used by the HW1 token definitions."
+  "Разбирает подмножество регулярных выражений, используемое в определениях токенов HW1."
   [pattern]
   (let [chars (vec pattern)
         pos (atom 0)
