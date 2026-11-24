@@ -1,0 +1,14 @@
+
+function sum(a: int[]) returns s: int uses i {
+  s = 0;
+  i = 0;
+  while (i < length(a)) {
+    s = s + a[i];
+    i = i + 1;
+  }
+}
+
+function fill(n: int) returns a: int[] uses t {
+  a[0] = n;
+  t = sum(a);
+}
