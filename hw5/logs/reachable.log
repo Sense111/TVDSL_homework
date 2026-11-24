@@ -1,0 +1,304 @@
+*** This is NuSMV 2.6.0 (compiled on Wed Oct 14 15:36:56 2015)
+*** Enabled addons are: compass
+*** For more information on NuSMV see <http://nusmv.fbk.eu>
+*** or email to <nusmv-users@list.fbk.eu>.
+*** Please report bugs to <Please report bugs to <nusmv-users@fbk.eu>>
+
+*** Copyright (c) 2010-2014, Fondazione Bruno Kessler
+
+*** This version of NuSMV is linked to the CUDD library version 2.4.1
+*** Copyright (c) 1995-2004, Regents of the University of Colorado
+
+*** This version of NuSMV is linked to the MiniSat SAT solver. 
+*** See http://minisat.se/MiniSat.html
+*** Copyright (c) 2003-2006, Niklas Een, Niklas Sorensson
+*** Copyright (c) 2007-2010, Niklas Sorensson
+
+NuSMV > NuSMV > NuSMV > NuSMV > NuSMV > The computation of reachable states has been completed.
+The diameter of the FSM is 7.
+NuSMV > ######################################################################
+system diameter: 7
+reachable states: 40 (2^5.32193) out of 256 (2^8)
+  ------- State    1 ------
+  pc0 = idle
+  pc1 = idle
+  want0 = FALSE
+  want1 = FALSE
+  turn = 1
+  run = 1
+  ------- State    2 ------
+  pc0 = idle
+  pc1 = idle
+  want0 = FALSE
+  want1 = FALSE
+  turn = 0
+  run = 1
+  ------- State    3 ------
+  pc0 = idle
+  pc1 = idle
+  want0 = FALSE
+  want1 = FALSE
+  turn = 1
+  run = 0
+  ------- State    4 ------
+  pc0 = idle
+  pc1 = idle
+  want0 = FALSE
+  want1 = FALSE
+  turn = 0
+  run = 0
+  ------- State    5 ------
+  pc0 = idle
+  pc1 = wait
+  want0 = FALSE
+  want1 = TRUE
+  turn = 0
+  run = 1
+  ------- State    6 ------
+  pc0 = idle
+  pc1 = wait
+  want0 = FALSE
+  want1 = TRUE
+  turn = 0
+  run = 0
+  ------- State    7 ------
+  pc0 = idle
+  pc1 = want
+  want0 = FALSE
+  want1 = TRUE
+  turn = 1
+  run = 1
+  ------- State    8 ------
+  pc0 = idle
+  pc1 = want
+  want0 = FALSE
+  want1 = TRUE
+  turn = 0
+  run = 1
+  ------- State    9 ------
+  pc0 = idle
+  pc1 = want
+  want0 = FALSE
+  want1 = TRUE
+  turn = 1
+  run = 0
+  ------- State   10 ------
+  pc0 = idle
+  pc1 = want
+  want0 = FALSE
+  want1 = TRUE
+  turn = 0
+  run = 0
+  ------- State   11 ------
+  pc0 = idle
+  pc1 = crit
+  want0 = FALSE
+  want1 = TRUE
+  turn = 0
+  run = 1
+  ------- State   12 ------
+  pc0 = idle
+  pc1 = crit
+  want0 = FALSE
+  want1 = TRUE
+  turn = 0
+  run = 0
+  ------- State   13 ------
+  pc0 = wait
+  pc1 = idle
+  want0 = TRUE
+  want1 = FALSE
+  turn = 1
+  run = 1
+  ------- State   14 ------
+  pc0 = wait
+  pc1 = idle
+  want0 = TRUE
+  want1 = FALSE
+  turn = 1
+  run = 0
+  ------- State   15 ------
+  pc0 = wait
+  pc1 = wait
+  want0 = TRUE
+  want1 = TRUE
+  turn = 1
+  run = 1
+  ------- State   16 ------
+  pc0 = wait
+  pc1 = wait
+  want0 = TRUE
+  want1 = TRUE
+  turn = 0
+  run = 1
+  ------- State   17 ------
+  pc0 = wait
+  pc1 = wait
+  want0 = TRUE
+  want1 = TRUE
+  turn = 1
+  run = 0
+  ------- State   18 ------
+  pc0 = wait
+  pc1 = wait
+  want0 = TRUE
+  want1 = TRUE
+  turn = 0
+  run = 0
+  ------- State   19 ------
+  pc0 = wait
+  pc1 = crit
+  want0 = TRUE
+  want1 = TRUE
+  turn = 1
+  run = 1
+  ------- State   20 ------
+  pc0 = wait
+  pc1 = want
+  want0 = TRUE
+  want1 = TRUE
+  turn = 1
+  run = 1
+  ------- State   21 ------
+  pc0 = wait
+  pc1 = crit
+  want0 = TRUE
+  want1 = TRUE
+  turn = 1
+  run = 0
+  ------- State   22 ------
+  pc0 = wait
+  pc1 = want
+  want0 = TRUE
+  want1 = TRUE
+  turn = 1
+  run = 0
+  ------- State   23 ------
+  pc0 = want
+  pc1 = idle
+  want0 = TRUE
+  want1 = FALSE
+  turn = 1
+  run = 1
+  ------- State   24 ------
+  pc0 = want
+  pc1 = idle
+  want0 = TRUE
+  want1 = FALSE
+  turn = 0
+  run = 1
+  ------- State   25 ------
+  pc0 = want
+  pc1 = idle
+  want0 = TRUE
+  want1 = FALSE
+  turn = 1
+  run = 0
+  ------- State   26 ------
+  pc0 = want
+  pc1 = idle
+  want0 = TRUE
+  want1 = FALSE
+  turn = 0
+  run = 0
+  ------- State   27 ------
+  pc0 = want
+  pc1 = wait
+  want0 = TRUE
+  want1 = TRUE
+  turn = 0
+  run = 1
+  ------- State   28 ------
+  pc0 = want
+  pc1 = wait
+  want0 = TRUE
+  want1 = TRUE
+  turn = 0
+  run = 0
+  ------- State   29 ------
+  pc0 = want
+  pc1 = want
+  want0 = TRUE
+  want1 = TRUE
+  turn = 1
+  run = 1
+  ------- State   30 ------
+  pc0 = want
+  pc1 = want
+  want0 = TRUE
+  want1 = TRUE
+  turn = 0
+  run = 1
+  ------- State   31 ------
+  pc0 = want
+  pc1 = want
+  want0 = TRUE
+  want1 = TRUE
+  turn = 1
+  run = 0
+  ------- State   32 ------
+  pc0 = want
+  pc1 = want
+  want0 = TRUE
+  want1 = TRUE
+  turn = 0
+  run = 0
+  ------- State   33 ------
+  pc0 = want
+  pc1 = crit
+  want0 = TRUE
+  want1 = TRUE
+  turn = 0
+  run = 1
+  ------- State   34 ------
+  pc0 = want
+  pc1 = crit
+  want0 = TRUE
+  want1 = TRUE
+  turn = 0
+  run = 0
+  ------- State   35 ------
+  pc0 = crit
+  pc1 = idle
+  want0 = TRUE
+  want1 = FALSE
+  turn = 1
+  run = 1
+  ------- State   36 ------
+  pc0 = crit
+  pc1 = idle
+  want0 = TRUE
+  want1 = FALSE
+  turn = 1
+  run = 0
+  ------- State   37 ------
+  pc0 = crit
+  pc1 = wait
+  want0 = TRUE
+  want1 = TRUE
+  turn = 0
+  run = 1
+  ------- State   38 ------
+  pc0 = crit
+  pc1 = wait
+  want0 = TRUE
+  want1 = TRUE
+  turn = 0
+  run = 0
+  ------- State   39 ------
+  pc0 = crit
+  pc1 = want
+  want0 = TRUE
+  want1 = TRUE
+  turn = 1
+  run = 1
+  ------- State   40 ------
+  pc0 = crit
+  pc1 = want
+  want0 = TRUE
+  want1 = TRUE
+  turn = 1
+  run = 0
+  -------------------------
+######################################################################
+NuSMV > 

@@ -1,0 +1,19 @@
+sum(a: int[], n: int) returns r: int uses i {
+  r = 0;
+  i = 0;
+  while (i < n) {
+    r = r + a[i] * 2 + a[i] * 3;
+    i = i + 1;
+  }
+}
+
+clamp(x: int, lo: int, hi: int) returns r: int {
+  r = x + 0;
+  if (r < lo) r = lo * 1;
+  if (r > hi and hi >= lo) r = hi;
+}
+
+consts() returns r: int uses t {
+  t = 2 + 3 * 4;
+  r = t * 1 + 0;
+}
