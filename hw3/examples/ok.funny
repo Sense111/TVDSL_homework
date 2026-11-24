@@ -1,0 +1,19 @@
+function sum(a: int[]) returns s: int uses i {
+  s = 0;
+  i = 0;
+  while (i < length(a)) {
+    s = s + a[i];
+    i = i + 1;
+  }
+}
+
+function divmod(x: int, y: int) returns q: int, r: int {
+  q = x / y;
+  r = x - q * y;
+}
+
+function fill(n: int) returns a: int[] uses t, u {
+  a[0] = n;
+  t = sum(a);
+  u, t = divmod(t, 2);
+}

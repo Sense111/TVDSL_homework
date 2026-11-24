@@ -1,0 +1,8 @@
+function f(x: int) returns r: int uses y, y {
+  x = 1;
+  r = z;
+  r = x < 2;
+  r = g(1);
+  r = f(1, 2);
+  if (x) r = 0;
+}
