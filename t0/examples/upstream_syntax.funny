@@ -1,0 +1,4 @@
+sum(a: int[]) returns s: int uses i {
+  s = 0; i = 0;
+  while (i < length(a)) { s = s + a[i]; i = i + 1; }
+}
