@@ -1,0 +1,209 @@
+=== sum ===
+--- IR до оптимизаций
+ function sum(a, n) returns r
+  r = 0
+  i = 0
+L1:
+  if i < n goto L2 else L3
+L2:
+  %t1 = a[i]
+  %t2 = %t1 * 2
+  %t3 = r + %t2
+  %t4 = a[i]
+  %t5 = %t4 * 3
+  r = %t3 + %t5
+  i = i + 1
+  goto L1
+L3:
+  return
+--- IR после оптимизаций
+ function sum(a, n) returns r
+  r = 0
+  i = 0
+L1:
+  if i < n goto L2 else L3
+L2:
+  %t1 = a[i]
+  %t2 = %t1 * 2
+  %t3 = r + %t2
+  %t5 = %t1 * 3
+  r = %t3 + %t5
+  i = i + 1
+  goto L1
+L3:
+  return
+--- CFG после оптимизаций
+ B0: -> [L1]
+  r = 0
+  i = 0
+  goto L1
+L1: -> [L2, L3]
+  if i < n goto L2 else L3
+L2: -> [L1]
+  %t1 = a[i]
+  %t2 = %t1 * 2
+  %t3 = r + %t2
+  %t5 = %t1 * 3
+  r = %t3 + %t5
+  i = i + 1
+  goto L1
+L3: -> []
+  return
+--- граф конфликтов временных (после)
+ %t1 [color 0]: %t2 %t3
+%t2 [color 1]: %t1
+%t3 [color 1]: %t1 %t5
+%t5 [color 0]: %t3
+--- метрики
+  инструкций: 12 -> 11
+  временных:  5 -> 4
+  цветов:     2 -> 2
+--- DOT: CFG
+ digraph "sum" {
+  node [shape=box fontname=monospace];
+  "B0" [label="B0:\lr = 0\li = 0\lgoto L1\l"];
+  "B0" -> "L1";
+  "L1" [label="L1:\lif i < n goto L2 else L3\l"];
+  "L1" -> "L2";
+  "L1" -> "L3";
+  "L2" [label="L2:\l%t1 = a[i]\l%t2 = %t1 * 2\l%t3 = r + %t2\l%t5 = %t1 * 3\lr = %t3 + %t5\li = i + 1\lgoto L1\l"];
+  "L2" -> "L1";
+  "L3" [label="L3:\lreturn\l"];
+}
+
+--- DOT: граф конфликтов
+ graph "sum" {
+  node [shape=circle fontname=monospace];
+  "%t1" [label="%t1\n0"];
+  "%t2" [label="%t2\n1"];
+  "%t3" [label="%t3\n1"];
+  "%t5" [label="%t5\n0"];
+  "%t1" -- "%t2";
+  "%t1" -- "%t3";
+  "%t3" -- "%t5";
+}
+
+=== clamp ===
+--- IR до оптимизаций
+ function clamp(x, lo, hi) returns r
+  r = x + 0
+  if r < lo goto L1 else L2
+L1:
+  r = lo * 1
+  goto L3
+L2:
+L3:
+  if r > hi goto L7 else L5
+L7:
+  if hi >= lo goto L4 else L5
+L4:
+  r = hi
+  goto L6
+L5:
+L6:
+  return
+--- IR после оптимизаций
+ function clamp(x, lo, hi) returns r
+  r = x
+  if x < lo goto L1 else L2
+L1:
+  r = lo
+  goto L3
+L2:
+L3:
+  if r > hi goto L7 else L5
+L7:
+  if hi >= lo goto L4 else L5
+L4:
+  r = hi
+  goto L6
+L5:
+L6:
+  return
+--- CFG после оптимизаций
+ B0: -> [L1, L2]
+  r = x
+  if x < lo goto L1 else L2
+L1: -> [L3]
+  r = lo
+  goto L3
+L2: -> [L3]
+  goto L3
+L3: -> [L7, L5]
+  if r > hi goto L7 else L5
+L7: -> [L4, L5]
+  if hi >= lo goto L4 else L5
+L4: -> [L6]
+  r = hi
+  goto L6
+L5: -> [L6]
+  goto L6
+L6: -> []
+  return
+--- граф конфликтов временных (после)
+ 
+--- метрики
+  инструкций: 9 -> 9
+  временных:  0 -> 0
+  цветов:     0 -> 0
+--- DOT: CFG
+ digraph "clamp" {
+  node [shape=box fontname=monospace];
+  "B0" [label="B0:\lr = x\lif x < lo goto L1 else L2\l"];
+  "B0" -> "L1";
+  "B0" -> "L2";
+  "L1" [label="L1:\lr = lo\lgoto L3\l"];
+  "L1" -> "L3";
+  "L2" [label="L2:\lgoto L3\l"];
+  "L2" -> "L3";
+  "L3" [label="L3:\lif r > hi goto L7 else L5\l"];
+  "L3" -> "L7";
+  "L3" -> "L5";
+  "L7" [label="L7:\lif hi >= lo goto L4 else L5\l"];
+  "L7" -> "L4";
+  "L7" -> "L5";
+  "L4" [label="L4:\lr = hi\lgoto L6\l"];
+  "L4" -> "L6";
+  "L5" [label="L5:\lgoto L6\l"];
+  "L5" -> "L6";
+  "L6" [label="L6:\lreturn\l"];
+}
+
+--- DOT: граф конфликтов
+ graph "clamp" {
+  node [shape=circle fontname=monospace];
+}
+
+=== consts ===
+--- IR до оптимизаций
+ function consts() returns r
+  %t1 = 3 * 4
+  t = 2 + %t1
+  %t2 = t * 1
+  r = %t2 + 0
+  return
+--- IR после оптимизаций
+ function consts() returns r
+  r = 14
+  return
+--- CFG после оптимизаций
+ B0: -> []
+  r = 14
+  return
+--- граф конфликтов временных (после)
+ 
+--- метрики
+  инструкций: 5 -> 2
+  временных:  2 -> 0
+  цветов:     1 -> 0
+--- DOT: CFG
+ digraph "consts" {
+  node [shape=box fontname=monospace];
+  "B0" [label="B0:\lr = 14\lreturn\l"];
+}
+
+--- DOT: граф конфликтов
+ graph "consts" {
+  node [shape=circle fontname=monospace];
+}
+
