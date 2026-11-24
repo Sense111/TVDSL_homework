@@ -1,0 +1,75 @@
+MODULE main
+
+VAR
+  pc0  : {idle, want, wait, crit};
+  pc1  : {idle, want, wait, crit};
+  want0 : boolean;
+  want1 : boolean;
+  turn  : 0..1;
+  run   : 0..1;
+
+ASSIGN
+  init(pc0)  := idle;
+  init(pc1)  := idle;
+  init(want0) := FALSE;
+  init(want1) := FALSE;
+  init(turn)  := 0;
+
+  next(run) := {0, 1};
+
+  next(pc0) :=
+    case
+      run != 0 : pc0;
+      pc0 = idle : {idle, want};
+      pc0 = want : wait;
+      pc0 = wait & (!want1 | turn = 0) : crit;
+      pc0 = wait : wait;
+      pc0 = crit : idle;
+      TRUE : pc0;
+    esac;
+
+  next(want0) :=
+    case
+      run != 0 : want0;
+      pc0 = idle & next(pc0) = want : TRUE;
+      pc0 = crit : FALSE;
+      TRUE : want0;
+    esac;
+
+  next(pc1) :=
+    case
+      run != 1 : pc1;
+      pc1 = idle : {idle, want};
+      pc1 = want : wait;
+      pc1 = wait & (!want0 | turn = 1) : crit;
+      pc1 = wait : wait;
+      pc1 = crit : idle;
+      TRUE : pc1;
+    esac;
+
+  next(want1) :=
+    case
+      run != 1 : want1;
+      pc1 = idle & next(pc1) = want : TRUE;
+      pc1 = crit : FALSE;
+      TRUE : want1;
+    esac;
+
+  next(turn) :=
+    case
+      run = 0 & pc0 = want : 1;
+      run = 1 & pc1 = want : 0;
+      TRUE : turn;
+    esac;
+
+DEFINE
+  crit0 := pc0 = crit;
+  crit1 := pc1 = crit;
+  trying0 := pc0 = want | pc0 = wait;
+  trying1 := pc1 = want | pc1 = wait;
+
+LTLSPEC G !(crit0 & crit1)
+SPEC AG (crit0 -> want0)
+SPEC AG (crit1 -> want1)
+LTLSPEC G (trying0 -> F crit0)
+LTLSPEC G (trying1 -> F crit1)
